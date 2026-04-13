@@ -23,7 +23,7 @@ const AVAILABLE_TOOLS = [
   { id: 'poi_qa_01', name: '大POI质检Skill', toolName: 'ai-geoops_large_poi_qa', desc: '对大POI作业结果进行质量检查，识别大面积错误或需要人工核实的小面积错误。', tags: ['质检', '大模型'] },
 ];
 
-const INITIAL_AGENTS = [
+export const INITIAL_AGENTS = [
   { 
     id: 'IntelligenceMining', 
     name: '情报挖掘数字员工Agent', 

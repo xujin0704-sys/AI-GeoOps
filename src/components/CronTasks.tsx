@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Timer, Plus, Play, Pause, MoreVertical, Calendar, X, Activity, List, Terminal, CheckCircle2, XCircle, Clock, Mail, MapPin, Database, ArrowRight, Search, ArrowLeft, AlertTriangle, Layers, ShieldCheck, GripVertical, BarChart2, ExternalLink } from 'lucide-react';
 import { useDictionary } from '../contexts/DictionaryContext';
 import { useTasks } from '../contexts/TaskContext';
+import { useSops } from '../contexts/SopContext';
+import { INITIAL_AGENTS } from './ClawStore';
+import { SKILLS } from './SkillStore';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -23,7 +26,11 @@ function SortableWorkflowItem(props: { id: string, item: any, onRemove: (id: str
         <GripVertical className="w-4 h-4" />
       </div>
       <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-        <Icon className="w-4 h-4" />
+        {React.isValidElement(Icon) ? (
+          React.cloneElement(Icon as React.ReactElement, { className: "w-4 h-4" })
+        ) : (
+          <Icon className="w-4 h-4" />
+        )}
       </div>
       <div className="flex-1">
         <div className="text-sm font-bold text-slate-800">{props.item.name}</div>
@@ -220,7 +227,8 @@ const TaskVisualization = ({ selectedLines }: { selectedLines: string[] }) => {
 
 export default function CronTasks() {
   const { scenarios } = useDictionary();
-  const { tasks, setTasks, addTask } = useTasks();
+  const { tasks, setTasks, addTask, updateTask, deleteTask } = useTasks();
+  const { sops } = useSops();
   const productionLines = ['全部产线', ...scenarios];
   
   const [selectedLines, setSelectedLines] = useState<string[]>([]);
@@ -240,17 +248,32 @@ export default function CronTasks() {
     production_line: scenarios[0] || 'POI产线',
     schedule: '',
     description: '',
-    workflow: [] as any[]
+    workflow: [] as any[],
+    selectedSopId: ''
   });
 
   const availableNodes = [
-    { id: 'node_1', name: '拉取 Kafka 队列', type: 'Database', icon: Database },
-    { id: 'node_2', name: '任务分发Agent', type: 'Agent', icon: Mail },
-    { id: 'node_3', name: 'POI作业Agent', type: 'Agent', icon: MapPin },
-    { id: 'node_4', name: 'POI质检Agent', type: 'Agent', icon: ShieldCheck },
-    { id: 'node_5', name: '人工作业', type: 'Manual', icon: Terminal },
-    { id: 'node_6', name: '数据入库', type: 'Database', icon: Database },
-    { id: 'node_7', name: '资料分析Agent', type: 'Agent', icon: Layers },
+    { id: 'base_1', name: '拉取 Kafka 队列', type: 'Database', icon: Database },
+    { id: 'base_2', name: '人工作业', type: 'Manual', icon: Terminal },
+    { id: 'base_3', name: '数据入库', type: 'Database', icon: Database },
+    // 动态关联 Agent
+    ...INITIAL_AGENTS.filter(agent => 
+      agent.lines.includes('通用') || agent.lines.includes(createForm.production_line)
+    ).map(agent => ({
+      id: `agent_${agent.id}`,
+      name: agent.name,
+      type: 'Agent',
+      icon: agent.icon
+    })),
+    // 动态关联 Skill
+    ...SKILLS.filter(skill => 
+      skill.scenarios.includes('通用') || skill.scenarios.includes(createForm.production_line)
+    ).map(skill => ({
+      id: `skill_${skill.id}`,
+      name: skill.name,
+      type: 'Skill',
+      icon: skill.icon
+    }))
   ];
 
   const sensors = useSensors(
@@ -288,6 +311,28 @@ export default function CronTasks() {
     }));
   };
 
+  const handleSopSelect = (sopId: string) => {
+    if (!sopId) {
+      setCreateForm({ ...createForm, selectedSopId: '', workflow: [] });
+      return;
+    }
+    const sop = sops.find(s => s.id.toString() === sopId);
+    if (sop) {
+      const newWorkflow = sop.nodes.map((n: any) => ({
+        ...n,
+        uid: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      }));
+      setCreateForm({
+        ...createForm,
+        selectedSopId: sopId,
+        name: createForm.name || sop.name,
+        production_line: sop.production_line,
+        description: createForm.description || sop.description,
+        workflow: newWorkflow
+      });
+    }
+  };
+
   const handleCreateTask = () => {
     if (!createForm.name) return;
     
@@ -315,7 +360,8 @@ export default function CronTasks() {
       production_line: scenarios[0] || 'POI产线',
       schedule: '',
       description: '',
-      workflow: []
+      workflow: [],
+      selectedSopId: ''
     });
   };
 
@@ -575,12 +621,28 @@ export default function CronTasks() {
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    <button 
-                      className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateTask(task.id, { status: task.status === 'active' ? 'paused' : 'active' });
+                        }}
+                        title={task.status === 'active' ? '暂停任务' : '恢复任务'}
+                      >
+                        {task.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      </button>
+                      <button 
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTask(task.id);
+                        }}
+                        title="删除任务"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1032,6 +1094,19 @@ export default function CronTasks() {
                 <h3 className="text-sm font-bold text-slate-800 mb-4">基础信息</h3>
                 <div className="space-y-4">
                   <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">从SOP模板导入</label>
+                    <select 
+                      value={createForm.selectedSopId}
+                      onChange={(e) => handleSopSelect(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-sm bg-indigo-50/30 text-indigo-800"
+                    >
+                      <option value="">-- 不使用模板，自定义编排 --</option>
+                      {sops.map(sop => (
+                        <option key={sop.id} value={sop.id}>{sop.name} ({sop.production_line})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1.5">任务名称 <span className="text-red-500">*</span></label>
                     <input 
                       type="text" 
@@ -1074,26 +1149,30 @@ export default function CronTasks() {
                   </div>
                 </div>
 
-                <h3 className="text-sm font-bold text-slate-800 mt-8 mb-4">可用节点 (点击添加)</h3>
-                <div className="grid grid-cols-2 gap-2">
+                <h3 className="text-sm font-bold text-slate-800 mt-8 mb-4">可用节点 (关联产线及通用)</h3>
+                <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
                   {availableNodes.map(node => {
                     const Icon = node.icon;
                     return (
                       <button 
                         key={node.id}
                         onClick={() => handleAddNode(node)}
-                        className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50 text-left transition-colors"
+                        className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50 text-left transition-colors group"
                       >
-                        <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center shrink-0">
-                          <Icon className="w-3 h-3 text-slate-600" />
+                        <div className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors">
+                          {React.isValidElement(Icon) ? (
+                            React.cloneElement(Icon as React.ReactElement, { className: "w-4 h-4" })
+                          ) : (
+                            <Icon className="w-4 h-4 text-slate-600" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-bold text-slate-800 truncate">{node.name}</div>
-                          <div className="text-[10px] text-slate-500">{node.type}</div>
+                          <div className="text-[10px] text-slate-400">{node.type}</div>
                         </div>
                         <Plus className="w-3 h-3 text-slate-400" />
                       </button>
-                    )
+                    );
                   })}
                 </div>
               </div>

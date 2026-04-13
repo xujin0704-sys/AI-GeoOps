@@ -17,10 +17,12 @@ import CronTasks from './components/CronTasks';
 import DataAnalysisCenter from './components/DataAnalysisCenter';
 import Connectors from './components/Connectors';
 import TokenApiManager from './components/TokenApiManager';
+import SopManagement from './components/SopManagement';
 import MissionControl from './components/MissionControl';
 import SystemSettings from './components/SystemSettings';
 import { DictionaryProvider } from './contexts/DictionaryContext';
 import { TaskProvider, useTasks } from './contexts/TaskContext';
+import { SopProvider } from './contexts/SopContext';
 import { ChatMessage, AgentResponse } from './types';
 import { getAgentResponse } from './services/gemini';
 
@@ -66,7 +68,9 @@ export default function App() {
   return (
     <DictionaryProvider>
       <TaskProvider>
-        <AppContent />
+        <SopProvider>
+          <AppContent />
+        </SopProvider>
       </TaskProvider>
     </DictionaryProvider>
   );
@@ -163,6 +167,8 @@ function AppContent() {
               <SkillStore />
             ) : activeView === 'claw-store' ? (
               <ClawStore />
+            ) : activeView === 'sop-management' ? (
+              <SopManagement />
             ) : activeView === 'cron-tasks' ? (
               <CronTasks />
             ) : activeView === 'connectors' ? (

@@ -3,7 +3,7 @@ import { BrainCircuit, Globe2, ScanSearch, CloudLightning, Route, Hexagon, Plus,
 import { useDictionary } from '../contexts/DictionaryContext';
 import VersionHistoryModal from './VersionHistoryModal';
 
-const SKILLS = [
+export const SKILLS = [
   // 产线作业技能
   {
     id: 'poi_job_01',

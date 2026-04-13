@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, BrainCircuit, Bot, Timer, Network, MessageSquare, MoreHorizontal, PanelLeftClose, Radar, Settings, Key } from 'lucide-react';
+import { Plus, BrainCircuit, Bot, Timer, Network, MessageSquare, MoreHorizontal, PanelLeftClose, Radar, Settings, Key, Layers } from 'lucide-react';
 
 const GeoOpsLogo = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -84,6 +84,12 @@ export default function Sidebar({ activeView, setActiveView, onNewChat }: Sideba
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">产线Agent层</h3>
         </div>
         <div className="px-3 space-y-1 mb-4">
+          <NavItem 
+            icon={<Layers className="w-4 h-4" />} 
+            label="产线SOP管理" 
+            isActive={activeView === 'sop-management'}
+            onClick={() => setActiveView('sop-management')}
+          />
           <NavItem 
             icon={<Bot className="w-4 h-4" />} 
             label="产线Agent管理" 
