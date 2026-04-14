@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Store, BadgeDollarSign, Compass, ShieldAlert, RadioTower, Plus, X, BrainCircuit, Wrench, Settings2, Play, CheckCircle2, Radar, Network, MapPin, History, Download, UploadCloud } from 'lucide-react';
+import { Bot, Store, BadgeDollarSign, Compass, ShieldAlert, RadioTower, Plus, X, BrainCircuit, Wrench, Settings2, Play, CircleCheck, Radar, Network, MapPin, History, Download, UploadCloud } from 'lucide-react';
 import VersionHistoryModal from './VersionHistoryModal';
 import { useDictionary } from '../contexts/DictionaryContext';
 
@@ -44,7 +44,7 @@ export const INITIAL_AGENTS = [
     category: '数据接入', 
     desc: '对接入的图面数据进行初步质量检查。', 
     detailedDesc: '负责对所有新接入的图面数据（如卫星影像、路网矢量数据）进行第一道防线的质量把控。它可以自动检测数据的完整性、坐标系正确性以及是否存在明显的拓扑错误，确保流入下游产线的数据符合基本规范。',
-    icon: <CheckCircle2 className="w-6 h-6 text-blue-600" />, 
+    icon: <CircleCheck className="w-6 h-6 text-blue-600" />, 
     users: '4.2k',
     model: 'gemini-1.5-pro',
     systemPrompt: '你是一个图面质检专家。你需要对接入的图面数据进行合规性和完整性检查。',
@@ -100,7 +100,7 @@ export const INITIAL_AGENTS = [
     category: '产线质检', 
     desc: '对 POI 作业结果进行质量检查。例如调用大POI质检Skill检查大POI核实任务结果，没问题的入库，有问题的打回重做或推送人工。', 
     detailedDesc: 'POI产线的质量守门员。它接收POI作业Agent提交的批次结果，调用【大POI质检Skill】进行空间拓扑、逻辑一致性和属性完整性检查。对于完全合规的数据直接放行入库；若发现大面积错误，则将整个批次打回给作业Agent重做；若仅有少量疑点，则精准推送给人工进行兜底核实。',
-    icon: <CheckCircle2 className="w-6 h-6 text-emerald-600" />, 
+    icon: <CircleCheck className="w-6 h-6 text-emerald-600" />, 
     users: '3.2k',
     model: 'gemini-1.5-pro',
     systemPrompt: '你是一个 POI 质检专家。你需要根据质检标准，对 POI 作业结果进行打分和判定，决定是否需要人工介入。',
@@ -117,7 +117,7 @@ export const INITIAL_AGENTS = [
     icon: <Store className="w-6 h-6 text-emerald-500" />, 
     users: '4.8k',
     model: 'gemini-1.5-pro',
-    systemPrompt: '你是一个 AOI/楼栋处理专家。你需要对分配给你的 AOI 及楼栋数据进行处理、补全和验证。',
+    systemPrompt: '你是一个 AOI/楼栋处理专家。你需要对分配给你的 AOI 及楼栋数据进行处理、补全 and 验证。',
     tools: ['geo_core_01'],
     lines: ['AOI/楼栋产线'],
     tags: ['作业', '空间计算']
@@ -128,7 +128,7 @@ export const INITIAL_AGENTS = [
     category: '产线质检', 
     desc: '对 AOI/楼栋作业结果进行质量检查。', 
     detailedDesc: '负责AOI和楼栋数据的质量验收。重点检查面状数据的自相交、重叠、缝隙等空间拓扑错误，以及楼栋与所属AOI的包含关系是否合理。',
-    icon: <CheckCircle2 className="w-6 h-6 text-emerald-600" />, 
+    icon: <CircleCheck className="w-6 h-6 text-emerald-600" />, 
     users: '2.9k',
     model: 'gemini-1.5-pro',
     systemPrompt: '你是一个 AOI/楼栋质检专家。你需要根据质检标准，对 AOI/楼栋作业结果进行打分和判定。',
@@ -145,7 +145,7 @@ export const INITIAL_AGENTS = [
     icon: <Compass className="w-6 h-6 text-emerald-500" />, 
     users: '6.1k',
     model: 'gemini-1.5-pro',
-    systemPrompt: '你是一个道路处理专家。你需要对分配给你的道路数据进行处理、补全和验证。',
+    systemPrompt: '你是一个道路处理专家。你需要对分配给你的道路数据进行处理、补全 and 验证。',
     tools: ['route_01'],
     lines: ['道路产线'],
     tags: ['作业', '空间计算']
@@ -155,11 +155,11 @@ export const INITIAL_AGENTS = [
     name: '道路产线数字质检员工Agent集群', 
     category: '产线质检', 
     desc: '对道路作业结果进行质量检查。', 
-    detailedDesc: '道路数据的质检员。通过模拟导航路径、检查路口连通关系、校验限行属性等方式，确保更新后的路网数据能够支持高精度的导航和路线规划。',
-    icon: <CheckCircle2 className="w-6 h-6 text-emerald-600" />, 
+    detailedDesc: '道路数据的质检员。通过模拟导航路径、检查路口连通关系、校验限行属性等方式，确保更新后的路网数据能够支持高精度的导航 and 路线规划。',
+    icon: <CircleCheck className="w-6 h-6 text-emerald-600" />, 
     users: '3.5k',
     model: 'gemini-1.5-pro',
-    systemPrompt: '你是一个道路质检专家。你需要根据质检标准，对道路作业结果进行打分和判定。',
+    systemPrompt: '你是一个道路质检专家。你需要根据质检标准，对道路作业结果进行打分 and 判定。',
     tools: ['route_01'],
     lines: ['道路产线'],
     tags: ['质检']
@@ -168,12 +168,12 @@ export const INITIAL_AGENTS = [
     id: 'AddressWorker', 
     name: '地址数字作业员工Agent集群', 
     category: '产线作业', 
-    desc: '处理地址解析、清洗和标准化任务。', 
+    desc: '处理地址解析、清洗 and 标准化任务。', 
     detailedDesc: '地址数据的处理引擎。挂载了Geo-LLM地址大模型，能够将用户输入的极度模糊、包含错别字或口语化的非标地址，精准解析为标准省市区街道格式，并映射到高精度的经纬度坐标。',
     icon: <MapPin className="w-6 h-6 text-emerald-500" />, 
     users: '9.1k',
     model: 'gemini-1.5-pro',
-    systemPrompt: '你是一个地址处理专家。你需要调用地址大模型对模糊地址进行解析和标准化。',
+    systemPrompt: '你是一个地址处理专家。你需要调用地址大模型对模糊地址进行解析 and 标准化。',
     tools: ['geo_core_01', 'geo_01'],
     lines: ['地址产线'],
     tags: ['作业', '大模型', '空间计算']
@@ -183,11 +183,11 @@ export const INITIAL_AGENTS = [
     name: '地址数字质检员工Agent集群', 
     category: '产线质检', 
     desc: '对地址作业结果进行质量检查。', 
-    detailedDesc: '地址解析结果的校验者。通过反向地理编码、周边POI交叉验证等手段，评估地址解析的准确率和坐标偏差，确保地址库的高质量。',
-    icon: <CheckCircle2 className="w-6 h-6 text-emerald-600" />, 
+    detailedDesc: '地址解析结果的校验者。通过反向地理编码、周边POI交叉验证等手段，评估地址解析的准确率 and 坐标偏差，确保地址库的高质量。',
+    icon: <CircleCheck className="w-6 h-6 text-emerald-600" />, 
     users: '4.7k',
     model: 'gemini-1.5-pro',
-    systemPrompt: '你是一个地址质检专家。你需要根据质检标准，对地址作业结果进行打分和判定。',
+    systemPrompt: '你是一个地址质检专家。你需要根据质检标准，对地址作业结果进行打分 and 判定。',
     tools: ['geo_core_01', 'geo_01'],
     lines: ['地址产线'],
     tags: ['质检', '大模型']
@@ -212,7 +212,7 @@ export const INITIAL_AGENTS = [
     category: '产线质检', 
     desc: '对位置画像作业结果进行质量检查。', 
     detailedDesc: '画像数据的审核员。通过对比历史数据趋势、校验数据逻辑一致性（如：某小区人口密度与建筑面积的比例是否合理），确保输出的位置画像真实可信。',
-    icon: <CheckCircle2 className="w-6 h-6 text-emerald-600" />, 
+    icon: <CircleCheck className="w-6 h-6 text-emerald-600" />, 
     users: '1.8k',
     model: 'gemini-1.5-pro',
     systemPrompt: '你是一个位置画像质检专家。你需要根据质检标准，对位置画像作业结果进行打分和判定。',
@@ -1073,7 +1073,7 @@ export default function ClawStore() {
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${
                             isSelected ? 'bg-red-500 border-red-500 text-white' : 'border-slate-300'
                           }`}>
-                            {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                            {isSelected && <CircleCheck className="w-3 h-3" />}
                           </div>
                           <div>
                             <p className={`text-sm font-bold ${isSelected ? 'text-red-900' : 'text-slate-700'}`}>

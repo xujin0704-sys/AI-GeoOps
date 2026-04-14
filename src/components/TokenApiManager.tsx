@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Key, Plus, Search, Shield, Clock, Activity, MoreVertical, RefreshCw, Trash2, Copy, CheckCircle2, XCircle } from 'lucide-react';
+import { Key, Plus, Search, Shield, Clock, Activity, MoreVertical, RefreshCw, Trash2, Copy, CircleCheck, CircleX } from 'lucide-react';
 
 const MOCK_TOKENS = [
   { id: 'tk_001', name: '生产环境主API Key', type: 'API Key', status: 'active', created: '2026-01-15', lastUsed: '10分钟前', usage: '1.2M / 5M', scopes: ['所有权限'] },
@@ -49,7 +49,7 @@ export default function TokenApiManager() {
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4">
               <div className="text-slate-500 font-medium text-sm">活跃 Token</div>
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><CheckCircle2 className="w-5 h-5" /></div>
+              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><CircleCheck className="w-5 h-5" /></div>
             </div>
             <div className="text-3xl font-bold text-slate-800">3</div>
           </div>
@@ -157,7 +157,7 @@ export default function TokenApiManager() {
                           className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                           title="复制 Token"
                         >
-                          {copiedId === token.id ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                          {copiedId === token.id ? <CircleCheck className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                         </button>
                         <button className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="刷新/重置">
                           <RefreshCw className="w-4 h-4" />

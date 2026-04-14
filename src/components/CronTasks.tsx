@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Timer, Plus, Play, Pause, MoreVertical, Calendar, X, Activity, List, Terminal, CheckCircle2, XCircle, Clock, Mail, MapPin, Database, ArrowRight, Search, ArrowLeft, AlertTriangle, Layers, ShieldCheck, GripVertical, BarChart2, ExternalLink } from 'lucide-react';
+import { Timer, Plus, Play, Pause, MoreVertical, Calendar, X, Activity, List, Terminal, CircleCheck, CircleX, Clock, Mail, MapPin, Database, ArrowRight, Search, ArrowLeft, CircleAlert, TriangleAlert, Layers, ShieldCheck, GripVertical, BarChart as BarChartIcon, ExternalLink } from 'lucide-react';
 import { useDictionary } from '../contexts/DictionaryContext';
 import { useTasks } from '../contexts/TaskContext';
 import { useSops } from '../contexts/SopContext';
@@ -95,7 +95,7 @@ const TaskVisualization = ({ selectedLines }: { selectedLines: string[] }) => {
         <div className="grid grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <BarChart2 className="w-5 h-5 text-indigo-500" />
+              <BarChartIcon className="w-5 h-5 text-indigo-500" />
               各产线任务分布与执行量
             </h3>
             <div className="h-[300px]">
@@ -799,7 +799,7 @@ export default function CronTasks() {
                   {selectedTask.anomalyData && selectedTask.anomalyData.length > 0 && (
                     <div className="bg-red-50/50 p-5 rounded-xl border border-red-100 shadow-sm">
                       <h3 className="text-sm font-bold text-red-800 mb-3 flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
+                        <TriangleAlert className="w-4 h-4" />
                         异常任务数据说明 (AI 自动识别)
                       </h3>
                       <p className="text-sm text-red-600/90 leading-relaxed mb-4">
@@ -842,7 +842,7 @@ export default function CronTasks() {
                                   )}
                                   {anomaly.status === 'resolved' && (
                                     <span className="text-xs text-emerald-600 flex items-center justify-end gap-1">
-                                      <CheckCircle2 className="w-3 h-3" /> 已解决
+                                      <CircleCheck className="w-3 h-3" /> 已解决
                                     </span>
                                   )}
                                 </td>
@@ -913,7 +913,7 @@ export default function CronTasks() {
                                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                                   batch.status === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
                                 }`}>
-                                  {batch.status === 'success' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                  {batch.status === 'success' ? <CircleCheck className="w-3 h-3" /> : <CircleX className="w-3 h-3" />}
                                   {batch.status === 'success' ? '成功' : '失败'}
                                 </span>
                               </td>
@@ -941,7 +941,7 @@ export default function CronTasks() {
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                             selectedBatch.status === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
                           }`}>
-                            {selectedBatch.status === 'success' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                            {selectedBatch.status === 'success' ? <CircleCheck className="w-3 h-3" /> : <CircleX className="w-3 h-3" />}
                             {selectedBatch.status === 'success' ? '成功' : '失败'}
                           </span>
                         </div>
@@ -1018,7 +1018,7 @@ export default function CronTasks() {
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600">
-                  <AlertTriangle className="w-5 h-5" />
+                  <TriangleAlert className="w-5 h-5" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800">人工处理异常数据</h2>
@@ -1063,7 +1063,7 @@ export default function CronTasks() {
                 onClick={handleResolveAnomaly}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all flex items-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CircleCheck className="w-4 h-4" />
                 保存修正并重新入库
               </button>
             </div>
@@ -1220,7 +1220,7 @@ export default function CronTasks() {
                 disabled={!createForm.name}
                 className="px-5 py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-xl font-medium transition-colors text-sm flex items-center gap-2 shadow-sm"
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CircleCheck className="w-4 h-4" />
                 保存任务
               </button>
             </div>

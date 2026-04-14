@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Network, BotMessageSquare, Mail, Database, Server, Plus, CheckCircle2, MapPin, CloudRain, Radio, Car, X, Settings2, Activity, Key } from 'lucide-react';
+import { Network, MessageSquare, Mail, Database, Server, Plus, CircleCheck, MapPin, CloudRain, Radio, Car, X, Settings2, Activity, Key } from 'lucide-react';
 
 const CATEGORIES = [
   { id: 'data-access', name: '资料接入管理', badge: '接入' },
@@ -86,7 +86,7 @@ export default function Connectors() {
                 </div>
                 {connector.status === 'connected' && (
                   <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
-                    <CheckCircle2 className="w-3 h-3" />
+                    <CircleCheck className="w-3 h-3" />
                     已配置
                   </span>
                 )}
@@ -119,7 +119,7 @@ export default function Connectors() {
                     {selectedConnector.name}
                     {selectedConnector.status === 'connected' && (
                       <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                        <CheckCircle2 className="w-3 h-3" /> 已配置
+                        <CircleCheck className="w-3 h-3" /> 已配置
                       </span>
                     )}
                   </h2>

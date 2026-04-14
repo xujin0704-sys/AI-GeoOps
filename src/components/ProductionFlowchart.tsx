@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { 
-  Database, BrainCircuit, ShieldCheck, Activity, Layers, BarChart3, 
-  Workflow, Radar, Settings, Search, Filter, Bell, LogOut, CheckCircle2, 
-  AlertCircle, Bot, DollarSign, Play, Pause, Square, ChevronRight, Check, 
-  LayoutDashboard, Network, Mail, CreditCard, Eye, FileCode2, Clock, Cpu,
+  Database, BrainCircuit, ShieldCheck, Activity, Layers, BarChart, 
+  Workflow, Radar, Settings, Search, Filter, Bell, LogOut, CircleCheck, 
+  CircleAlert, Bot, DollarSign, Play, Pause, Square, ChevronRight, Check, 
+  LayoutDashboard, Network, Mail, CreditCard, Eye, FileCode, Clock, Cpu,
   MapPin, Phone, Briefcase, Globe, Zap, Target, Share2, Maximize, Minimize,
   Plus, Minus, Map as MapIcon, Link, PenTool, Sparkles, Users
 } from 'lucide-react';
@@ -366,7 +366,7 @@ export default function ProductionFlowchart({
             { label: '整合后 (Consolidated)', value: '1.2M', percent: '30%', color: 'red' }
           ]}
           status="STATUS: 运行中"
-          icon={BarChart3}
+          icon={BarChart}
           onClick={() => onNodeClick('资料分析 Agent')}
         />
 
@@ -415,7 +415,7 @@ export default function ProductionFlowchart({
         >
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 rounded-2xl bg-red-50 text-red-500">
-              <BarChart3 className="w-6 h-6" />
+              <BarChart className="w-6 h-6" />
             </div>
             <div>
               <div className="text-sm font-bold text-slate-800">任务调度 Agent</div>

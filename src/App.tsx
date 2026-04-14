@@ -18,6 +18,7 @@ import DataAnalysisCenter from './components/DataAnalysisCenter';
 import Connectors from './components/Connectors';
 import TokenApiManager from './components/TokenApiManager';
 import SopManagement from './components/SopManagement';
+import WikiManagement from './components/WikiManagement';
 import MissionControl from './components/MissionControl';
 import SystemSettings from './components/SystemSettings';
 import { DictionaryProvider } from './contexts/DictionaryContext';
@@ -169,6 +170,8 @@ function AppContent() {
               <ClawStore />
             ) : activeView === 'sop-management' ? (
               <SopManagement />
+            ) : activeView === 'wiki-management' ? (
+              <WikiManagement />
             ) : activeView === 'cron-tasks' ? (
               <CronTasks />
             ) : activeView === 'connectors' ? (

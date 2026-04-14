@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  Activity, Users, Workflow, ShieldAlert, TerminalSquare, 
-  Search, Filter, Bell, LogOut, CheckCircle2, AlertCircle, 
+  Activity, Users, Workflow, ShieldAlert, SquareTerminal, 
+  Search, Filter, Bell, LogOut, CircleCheck, CircleAlert, 
   Bot, DollarSign, Play, Pause, Square, ChevronRight, Check, LayoutDashboard, Radar, Network,
-  Database, Mail, CreditCard, Eye, Settings, FileCode2, Clock, ShieldCheck, Cpu, Layers, Share2, Maximize, MapPin, Plus,
-  BarChart3, Sparkles
+  Database, Mail, CreditCard, Eye, Settings, FileCode, Clock, ShieldCheck, Cpu, Layers, Share2, Maximize, MapPin, Plus,
+  BarChart, Sparkles
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { 
@@ -125,7 +125,7 @@ const NodeDetailPanel = ({ node, onClose, onOpenConsole }: { node: string, onClo
         <section>
           <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">运行趋势</h3>
           <div className="h-32 w-full bg-slate-50 rounded-2xl flex items-center justify-center border border-dashed border-slate-200">
-            <BarChart3 className="w-8 h-8 text-slate-200" />
+            <BarChart className="w-8 h-8 text-slate-200" />
             <span className="text-[10px] text-slate-300 ml-2 font-medium">趋势图表加载中...</span>
           </div>
         </section>
@@ -171,7 +171,7 @@ const NodeConsole = ({ node, onClose }: { node: string, onClose: () => void }) =
       <div className="w-full max-w-4xl h-[600px] bg-slate-950 rounded-3xl border border-slate-800 shadow-2xl flex flex-col overflow-hidden">
         <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <TerminalSquare className="w-5 h-5 text-emerald-500" />
+            <SquareTerminal className="w-5 h-5 text-emerald-500" />
             <span className="text-sm font-mono text-slate-300">{node} 控制台</span>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded-lg text-slate-500">

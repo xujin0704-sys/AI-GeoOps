@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Loader2, Route, Store, BadgeDollarSign, Compass, ShieldAlert, RadioTower, Bot, CheckCircle2, Navigation, TrendingUp, Timer, Lightbulb, Layers } from 'lucide-react';
+import { Loader2, Route, Store, BadgeDollarSign, Compass, ShieldAlert, RadioTower, Bot, CircleCheck, Navigation, TrendingUp, Timer, Lightbulb, Layers } from 'lucide-react';
 import { ChatMessage } from '../types';
 
 interface MessageListProps {
@@ -74,7 +74,7 @@ export default function MessageList({ messages, isLoading }: MessageListProps) {
                   )}
                   {msg.agentResponse.decision_card.highlight_result && (
                     <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <CircleCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-[10px] font-semibold text-emerald-800 uppercase mb-0.5">核心结论</p>
                         <p className="text-sm font-bold text-emerald-900 leading-snug">{msg.agentResponse.decision_card.highlight_result}</p>

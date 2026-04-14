@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Timer, Plus, Play, Pause, MoreVertical, Calendar, X, Activity, List, 
-  Terminal, CheckCircle2, XCircle, Clock, Mail, MapPin, Database, 
-  ArrowRight, Search, ArrowLeft, AlertTriangle, Layers, BarChart3,
+  Terminal, CircleCheck, CircleX, Clock, Mail, MapPin, Database, 
+  ArrowRight, Search, ArrowLeft, CircleAlert, TriangleAlert, Layers, BarChart,
   BrainCircuit, ShieldCheck, ChevronRight, Workflow
 } from 'lucide-react';
 import { useDictionary } from '../contexts/DictionaryContext';
@@ -115,7 +115,7 @@ export default function DataAnalysisCenter() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <BarChart3 className="w-6 h-6 text-red-500" />
+                <BarChart className="w-6 h-6 text-red-500" />
                 资料分析中心 (Data Analysis Center)
               </h1>
               <p className="text-slate-500 mt-1">按产线维度管理资料分析任务、数据质量监控与分析报告生成。</p>
@@ -160,7 +160,7 @@ export default function DataAnalysisCenter() {
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-slate-500 font-medium text-sm">{selectedLines.length === 0 ? '总任务数' : '筛选任务数'}</div>
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><BarChart3 className="w-5 h-5" /></div>
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><BarChart className="w-5 h-5" /></div>
               </div>
               <div className="text-3xl font-bold text-slate-800">{totalTasks}</div>
             </div>
@@ -296,7 +296,7 @@ export default function DataAnalysisCenter() {
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
-                  <BarChart3 className="w-5 h-5" />
+                  <BarChart className="w-5 h-5" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800">{selectedTask.name}</h2>
@@ -356,7 +356,7 @@ export default function DataAnalysisCenter() {
                   {selectedTask.anomalyData && selectedTask.anomalyData.length > 0 && (
                     <div className="bg-red-50/50 p-5 rounded-xl border border-red-100 shadow-sm">
                       <h3 className="text-sm font-bold text-red-800 mb-3 flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
+                        <TriangleAlert className="w-4 h-4" />
                         异常分析说明 (AI 自动识别)
                       </h3>
                       <p className="text-sm text-red-600/90 leading-relaxed mb-4">
@@ -399,7 +399,7 @@ export default function DataAnalysisCenter() {
                                   )}
                                   {anomaly.status === 'resolved' && (
                                     <span className="text-xs text-emerald-600 flex items-center justify-end gap-1">
-                                      <CheckCircle2 className="w-3 h-3" /> 已解决
+                                      <CircleCheck className="w-3 h-3" /> 已解决
                                     </span>
                                   )}
                                 </td>
@@ -470,7 +470,7 @@ export default function DataAnalysisCenter() {
                                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                                   batch.status === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
                                 }`}>
-                                  {batch.status === 'success' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                  {batch.status === 'success' ? <CircleCheck className="w-3 h-3" /> : <CircleX className="w-3 h-3" />}
                                   {batch.status === 'success' ? '成功' : '失败'}
                                 </span>
                               </td>
@@ -498,7 +498,7 @@ export default function DataAnalysisCenter() {
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                             selectedBatch.status === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'
                           }`}>
-                            {selectedBatch.status === 'success' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                            {selectedBatch.status === 'success' ? <CircleCheck className="w-3 h-3" /> : <CircleX className="w-3 h-3" />}
                             {selectedBatch.status === 'success' ? '成功' : '失败'}
                           </span>
                         </div>
@@ -576,7 +576,7 @@ export default function DataAnalysisCenter() {
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-600">
-                  <AlertTriangle className="w-5 h-5" />
+                  <TriangleAlert className="w-5 h-5" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800">人工处理异常数据</h2>
@@ -621,7 +621,7 @@ export default function DataAnalysisCenter() {
                 onClick={handleResolveAnomaly}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all flex items-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CircleCheck className="w-4 h-4" />
                 保存修正并重新入库
               </button>
             </div>

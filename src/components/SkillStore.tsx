@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrainCircuit, Globe2, ScanSearch, CloudLightning, Route, Hexagon, Plus, X, Search, Code2, Webhook, FileJson, CheckCircle2, TerminalSquare, Database, Play, ShieldCheck, Lock, Sparkles, MapPin, Settings2, Layers, History, UploadCloud, Download } from 'lucide-react';
+import { BrainCircuit, Globe, ScanSearch, CloudLightning, Route, Hexagon, Plus, X, Search, Code2, Webhook, FileJson, CircleCheck, SquareTerminal, Database, Play, ShieldCheck, Lock, Sparkles, MapPin, Settings2, Layers, History, UploadCloud, Download } from 'lucide-react';
 import { useDictionary } from '../contexts/DictionaryContext';
 import VersionHistoryModal from './VersionHistoryModal';
 
@@ -37,7 +37,7 @@ export const SKILLS = [
     llmPrompt: '当你需要获取某个具体地点、建筑或街道的精确经纬度坐标时，请调用此工具。',
     schema: '{\n  "type": "object",\n  "properties": {\n    "address": {\n      "type": "string",\n      "description": "需要解析的详细地址"\n    }\n  },\n  "required": ["address"]\n}',
     codeSnippet: `import requests\n\nresponse = requests.post(\n    "https://api.ai-geoops.com/v1/geocode",\n    json={"address": "北京市海淀区上地十街10号"},\n    headers={"Authorization": "Bearer YOUR_API_KEY"}\n)\nprint(response.json())`,
-    icon: <Globe2 className="w-6 h-6 text-blue-500" />,
+    icon: <Globe className="w-6 h-6 text-blue-500" />,
     isCore: false,
     version: 'v2.1.0',
     versionHistory: [
@@ -244,7 +244,7 @@ export const SKILLS = [
     llmPrompt: '当政府或城管部门需要评估公共设施覆盖度、应急响应时间或进行网格化分析时调用。',
     schema: '{\n  "type": "object",\n  "properties": {\n    "region": { "type": "string", "description": "分析区域边界 (GeoJSON)" },\n    "analysis_type": { "type": "string", "enum": ["coverage", "emergency", "grid"] }\n  },\n  "required": ["region", "analysis_type"]\n}',
     codeSnippet: `import requests\n\nresponse = requests.post(\n    "https://api.ai-geoops.com/v1/business/urban-analysis",\n    json={"region": "POLYGON((...))", "analysis_type": "coverage"},\n    headers={"Authorization": "Bearer YOUR_API_KEY"}\n)\nprint(response.json())`,
-    icon: <Globe2 className="w-6 h-6 text-teal-500" />,
+    icon: <Globe className="w-6 h-6 text-teal-500" />,
     isCore: true,
     version: 'v1.3.0',
     versionHistory: [
@@ -799,7 +799,7 @@ export default function SkillStore() {
                 <div className="p-6 space-y-6">
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                      <TerminalSquare className="w-4 h-4 text-slate-400" />
+                      <SquareTerminal className="w-4 h-4 text-slate-400" />
                       技能说明
                     </h3>
                     {!isEditingInfo ? (
@@ -1266,7 +1266,7 @@ export default function SkillStore() {
                   {/* Section 3: 执行配置 */}
                   <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
                     <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-2">
-                      <TerminalSquare className="w-4 h-4 text-slate-500" />
+                      <SquareTerminal className="w-4 h-4 text-slate-500" />
                       执行配置 (Execution Config)
                     </h3>
                     

@@ -1,5 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Layers, Plus, Search, MapPin, Database, Mail, ShieldCheck, Terminal, Edit, Trash2, Save, X, GripVertical, History, CheckCircle2, AlertCircle, Clock, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Layers, Plus, Search, MapPin, Database, Mail, ShieldCheck, Terminal, Pencil, Trash2, Save, X, GripVertical, History, CircleCheck, CircleAlert, Clock, Info, UploadCloud, FileArchive, Download, FileCode, Code, Layout, GitBranch, MousePointer2 } from 'lucide-react';
+import mermaid from 'mermaid';
+import ReactFlow, { 
+  Background, 
+  Controls, 
+  addEdge, 
+  useNodesState, 
+  useEdgesState, 
+  Panel,
+  Handle,
+  Position,
+  Connection,
+  Edge,
+  Node,
+  ReactFlowInstance
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import { useDictionary } from '../contexts/DictionaryContext';
 import { useSops } from '../contexts/SopContext';
 import { INITIAL_AGENTS } from './ClawStore';
@@ -16,7 +32,14 @@ function SortableNodeItem(props: { id: string, item: any, onRemove: (id: string)
     transition,
   };
 
-  const Icon = props.item.icon || MapPin;
+  const renderIcon = (icon: any, className: string = "w-4 h-4") => {
+    if (!icon) return <MapPin className={className} />;
+    if (React.isValidElement(icon)) {
+      return React.cloneElement(icon as React.ReactElement, { className });
+    }
+    const IconComponent = icon;
+    return <IconComponent className={className} />;
+  };
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-2 group">
@@ -29,7 +52,7 @@ function SortableNodeItem(props: { id: string, item: any, onRemove: (id: string)
         props.item.type === 'Manual' ? 'bg-amber-100 text-amber-600' :
         'bg-blue-100 text-blue-600'
       }`}>
-        <Icon className="w-4 h-4" />
+        {renderIcon(props.item.icon)}
       </div>
       <div className="flex-1">
         <div className="font-medium text-sm text-slate-800">{props.item.name}</div>
@@ -45,6 +68,54 @@ function SortableNodeItem(props: { id: string, item: any, onRemove: (id: string)
   );
 }
 
+// Custom Node Component for ReactFlow
+const SopFlowNode = ({ data }: any) => {
+  if (!data) return null;
+  const Icon = data.icon || MapPin;
+  const isDecision = data.type === 'Decision';
+
+  return (
+    <div className={`px-4 py-3 shadow-lg rounded-xl border-2 bg-white min-w-[150px] ${
+      data.selected ? 'border-red-500 ring-4 ring-red-500/10' : 'border-slate-200'
+    }`}>
+      <Handle type="target" position={Position.Top} className="w-3 h-3 bg-slate-400 border-2 border-white" />
+      
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+          data.type === 'Agent' ? 'bg-indigo-100 text-indigo-600' :
+          data.type === 'Database' ? 'bg-emerald-100 text-emerald-600' :
+          data.type === 'Manual' ? 'bg-amber-100 text-amber-600' :
+          data.type === 'Decision' ? 'bg-rose-100 text-rose-600' :
+          'bg-blue-100 text-blue-600'
+        }`}>
+          {Icon ? (typeof Icon === 'function' ? <Icon className="w-5 h-5" /> : (React.isValidElement(Icon) ? React.cloneElement(Icon as React.ReactElement, { className: "w-5 h-5" }) : <MapPin className="w-5 h-5" />)) : <MapPin className="w-5 h-5" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-slate-800 truncate">{data.label}</div>
+          <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{data.type}</div>
+        </div>
+      </div>
+
+      {isDecision ? (
+        <>
+          <Handle type="source" position={Position.Bottom} id="yes" className="w-3 h-3 bg-emerald-500 border-2 border-white left-1/4" />
+          <Handle type="source" position={Position.Bottom} id="no" className="w-3 h-3 bg-rose-500 border-2 border-white left-3/4" />
+          <div className="flex justify-between mt-2 px-1">
+            <span className="text-[8px] font-bold text-emerald-600">YES</span>
+            <span className="text-[8px] font-bold text-rose-600">NO</span>
+          </div>
+        </>
+      ) : (
+        <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-slate-400 border-2 border-white" />
+      )}
+    </div>
+  );
+};
+
+const nodeTypes = {
+  sopNode: SopFlowNode,
+};
+
 export default function SopManagement() {
   const { scenarios } = useDictionary();
   const { sops, addSop, updateSop, deleteSop } = useSops();
@@ -59,18 +130,117 @@ export default function SopManagement() {
   const [isEditingInSidebar, setIsEditingInSidebar] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'info' | 'history'>('info');
   const [versionNote, setVersionNote] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [workflowMode, setWorkflowMode] = useState<'visual' | 'mermaid'>('visual');
+  const [mermaidCode, setMermaidCode] = useState('graph TD\n  A[开始] --> B[处理]\n  B --> C[结束]');
   
+  // ReactFlow State
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [rfInstance, setRfInstance] = useState<any>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const sidebarFileInputRef = useRef<HTMLInputElement>(null);
+  const mermaidRef = useRef<HTMLDivElement>(null);
+
+  const onConnect = useCallback(
+    (params: Connection) => {
+      const label = params.sourceHandle === 'yes' ? '是' : params.sourceHandle === 'no' ? '否' : '';
+      return setEdges((eds) => addEdge({ 
+        ...params, 
+        animated: true,
+        label: label,
+        labelStyle: { fill: label === '是' ? '#059669' : label === '否' ? '#e11d48' : '#64748b', fontWeight: 700, fontSize: 10 },
+        labelBgStyle: { fill: '#ffffff', fillOpacity: 0.8 },
+        labelBgPadding: [4, 2],
+        labelBgBorderRadius: 4,
+      }, eds));
+    },
+    [setEdges]
+  );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow');
+      const nodeDataStr = event.dataTransfer.getData('application/nodeData');
+
+      if (typeof type === 'undefined' || !type || !rfInstance) {
+        return;
+      }
+
+      const nodeData = JSON.parse(nodeDataStr);
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      if (!reactFlowBounds) return;
+
+      const position = rfInstance.screenToFlowPosition 
+        ? rfInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+        : rfInstance.project({
+            x: event.clientX - reactFlowBounds.left,
+            y: event.clientY - reactFlowBounds.top,
+          });
+
+      const newNode = {
+        id: `node_${Date.now()}`,
+        type: 'sopNode',
+        position,
+        data: { 
+          label: nodeData.name, 
+          type: nodeData.type, 
+          icon: nodeData.icon,
+          originalId: nodeData.id
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [rfInstance, setNodes]
+  );
+
+  useEffect(() => {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      securityLevel: 'loose',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (mermaidRef.current && workflowMode === 'mermaid') {
+      mermaid.contentLoaded();
+    }
+  }, [mermaidCode, workflowMode, selectedSop, isCreating]);
+
   const [form, setForm] = useState({
     name: '',
     production_line: scenarios[0] || 'POI产线',
     description: '',
-    nodes: [] as any[]
+    nodes: [] as any[],
+    edges: [] as any[],
+    scriptPackage: null as { name: string, size: string, uploadDate: string } | null,
+    mermaidCode: ''
   });
+
+  const renderIcon = (icon: any, className: string = "w-5 h-5") => {
+    if (!icon) return <MapPin className={className} />;
+    if (React.isValidElement(icon)) {
+      return React.cloneElement(icon as React.ReactElement, { className });
+    }
+    const IconComponent = icon;
+    return <IconComponent className={className} />;
+  };
 
   const availableNodes = [
     { id: 'base_1', name: '拉取 Kafka 队列', type: 'Database', icon: Database },
     { id: 'base_2', name: '人工作业', type: 'Manual', icon: Terminal },
-    { id: 'base_3', name: '数据入库', type: 'Database', icon: Database },
+    { id: 'base_3', name: '判断节点', type: 'Decision', icon: GitBranch },
     // 动态关联 Agent
     ...INITIAL_AGENTS.filter(agent => 
       agent.lines.includes('通用') || agent.lines.includes(form.production_line)
@@ -97,10 +267,35 @@ export default function SopManagement() {
         name: selectedSop.name,
         production_line: selectedSop.production_line,
         description: selectedSop.description,
-        nodes: selectedSop.nodes.map((n: any) => ({ ...n, id: n.id || n.step.toString() }))
+        nodes: selectedSop.nodes || [],
+        edges: selectedSop.edges || [],
+        scriptPackage: selectedSop.scriptPackage || null,
+        mermaidCode: selectedSop.mermaidCode || ''
       });
+      
+      setNodes(selectedSop.nodes || []);
+      setEdges(selectedSop.edges || []);
+
+      if (selectedSop.mermaidCode) {
+        setMermaidCode(selectedSop.mermaidCode);
+        setWorkflowMode('mermaid');
+      } else {
+        setWorkflowMode('visual');
+      }
     }
-  }, [selectedSop, isEditingInSidebar]);
+  }, [selectedSop, isEditingInSidebar, setNodes, setEdges]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isSidebar = false) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const newPackage = {
+        name: file.name,
+        size: (file.size / (1024 * 1024)).toFixed(2) + 'MB',
+        uploadDate: new Date().toISOString().split('T')[0]
+      };
+      setForm(prev => ({ ...prev, scriptPackage: newPackage }));
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -126,32 +321,21 @@ export default function SopManagement() {
     return matchesSearch && matchesTab;
   });
 
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      setForm((prev) => {
-        const oldIndex = prev.nodes.findIndex((n) => n.id === active.id || n.step.toString() === active.id);
-        const newIndex = prev.nodes.findIndex((n) => n.id === over.id || n.step.toString() === over.id);
-        const newNodes = arrayMove(prev.nodes, oldIndex, newIndex);
-        return { ...prev, nodes: newNodes.map((n, i) => ({ ...n, step: i + 1 })) };
-      });
-    }
-  };
-
-  const addNode = (node: any) => {
-    const newNode = {
-      ...node,
-      id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      step: form.nodes.length + 1
-    };
-    setForm(prev => ({ ...prev, nodes: [...prev.nodes, newNode] }));
-  };
-
-  const removeNode = (id: string) => {
-    setForm(prev => {
-      const newNodes = prev.nodes.filter(n => n.id !== id && n.step.toString() !== id);
-      return { ...prev, nodes: newNodes.map((n, i) => ({ ...n, step: i + 1 })) };
+  const generateMermaidFromFlow = (nodes: any[], edges: any[]) => {
+    let code = 'graph TD\n';
+    nodes.forEach(node => {
+      const label = node.data.label.replace(/[\[\]\(\)]/g, '');
+      if (node.data.type === 'Decision') {
+        code += `  ${node.id}{${label}}\n`;
+      } else {
+        code += `  ${node.id}[${label}]\n`;
+      }
     });
+    edges.forEach(edge => {
+      const label = edge.sourceHandle === 'yes' ? ' |是| ' : edge.sourceHandle === 'no' ? ' |否| ' : '';
+      code += `  ${edge.source} -->${label}${edge.target}\n`;
+    });
+    return code;
   };
 
   const openCreateModal = () => {
@@ -160,9 +344,16 @@ export default function SopManagement() {
       name: '',
       production_line: scenarios[0] || 'POI产线',
       description: '',
-      nodes: []
+      nodes: [],
+      edges: [],
+      scriptPackage: null,
+      mermaidCode: 'graph TD\n  A[开始] --> B[处理]\n  B --> C[结束]'
     });
-    setIsModalOpen(true);
+    setNodes([]);
+    setEdges([]);
+    setMermaidCode('graph TD\n  A[开始] --> B[处理]\n  B --> C[结束]');
+    setWorkflowMode('visual');
+    setIsCreating(true);
   };
 
   const openEditModal = (sop: any) => {
@@ -171,13 +362,37 @@ export default function SopManagement() {
       name: sop.name,
       production_line: sop.production_line,
       description: sop.description,
-      nodes: sop.nodes.map((n: any) => ({ ...n, id: n.id || n.step.toString() }))
+      nodes: sop.nodes || [],
+      edges: sop.edges || [],
+      scriptPackage: sop.scriptPackage || null,
+      mermaidCode: sop.mermaidCode || ''
     });
-    setIsModalOpen(true);
+    setNodes(sop.nodes || []);
+    setEdges(sop.edges || []);
+    
+    if (sop.mermaidCode) {
+      setMermaidCode(sop.mermaidCode);
+      setWorkflowMode('mermaid');
+    } else {
+      setWorkflowMode('visual');
+    }
+    setIsCreating(false);
+    setIsEditingInSidebar(true);
+    setSelectedSop(sop);
   };
 
   const handleSave = () => {
     if (!form.name) return;
+    
+    const currentNodes = nodes;
+    const currentEdges = edges;
+    
+    const finalForm = {
+      ...form,
+      nodes: currentNodes,
+      edges: currentEdges,
+      mermaidCode: workflowMode === 'mermaid' ? mermaidCode : generateMermaidFromFlow(currentNodes, currentEdges)
+    };
     
     if (editingSop || (selectedSop && isEditingInSidebar)) {
       const targetSop = editingSop || selectedSop;
@@ -191,24 +406,27 @@ export default function SopManagement() {
         version: newVersion,
         date: new Date().toISOString().split('T')[0],
         author: 'Current User',
-        description: versionNote || '更新了 SOP 流程'
+        description: versionNote || '更新了 SOP 流程',
+        fileName: finalForm.scriptPackage?.name
       };
 
       const updates = {
-        ...form,
+        ...finalForm,
         version: newVersion,
         versionHistory: [historyItem, ...(targetSop.versionHistory || [])]
       };
 
       updateSop(targetSop.id, updates);
       
-      if (isEditingInSidebar) {
+      if (isEditingInSidebar || isCreating) {
         setSelectedSop({ ...targetSop, ...updates });
         setIsEditingInSidebar(false);
+        setIsCreating(false);
         setVersionNote('');
       }
     } else {
-      addSop(form);
+      addSop(finalForm);
+      setIsCreating(false);
     }
     setIsModalOpen(false);
     setEditingSop(null);
@@ -348,7 +566,7 @@ export default function SopManagement() {
                       onClick={(e) => { e.stopPropagation(); openEditModal(sop); }}
                       className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                     >
-                      <Edit className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); deleteSop(sop.id); }}
@@ -374,9 +592,9 @@ export default function SopManagement() {
         </div>
       </div>
 
-      {/* SOP Details Modal */}
-      {selectedSop && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-end z-50 animate-in fade-in duration-200" onClick={() => { setSelectedSop(null); setIsEditingInSidebar(false); setActiveSidebarTab('info'); }}>
+      {/* SOP Details / Create / Edit Sidebar */}
+      {(selectedSop || isCreating) && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-end z-50 animate-in fade-in duration-200" onClick={() => { setSelectedSop(null); setIsEditingInSidebar(false); setIsCreating(false); setActiveSidebarTab('info'); }}>
           <div className="bg-white shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col h-full animate-in slide-in-from-right duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
               <div className="flex gap-4 items-center">
@@ -385,31 +603,33 @@ export default function SopManagement() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    {isEditingInSidebar ? '编辑 SOP' : selectedSop.name}
+                    {isCreating ? '新建 SOP' : (isEditingInSidebar ? '编辑 SOP' : selectedSop.name)}
                   </h2>
                   <div className="flex gap-3 text-sm text-slate-500 mt-1.5 font-mono text-xs">
-                    <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">{selectedSop.production_line}</span>
-                    <span className="flex items-center gap-1">版本: {selectedSop.version || 'v1.0.0'}</span>
+                    <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">
+                      {isCreating ? form.production_line : selectedSop.production_line}
+                    </span>
+                    {!isCreating && <span className="flex items-center gap-1">版本: {selectedSop.version || 'v1.0.0'}</span>}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {!isEditingInSidebar && (
+                {!isEditingInSidebar && !isCreating && (
                   <button 
                     onClick={() => setIsEditingInSidebar(true)}
                     className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Pencil className="w-4 h-4" />
                     编辑
                   </button>
                 )}
-                <button onClick={() => { setSelectedSop(null); setIsEditingInSidebar(false); setActiveSidebarTab('info'); }} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
+                <button onClick={() => { setSelectedSop(null); setIsEditingInSidebar(false); setIsCreating(false); setActiveSidebarTab('info'); }} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {!isEditingInSidebar && (
+            {!isEditingInSidebar && !isCreating && (
               <div className="flex border-b border-slate-100 bg-white px-6">
                 <button 
                   onClick={() => setActiveSidebarTab('info')}
@@ -427,16 +647,33 @@ export default function SopManagement() {
             )}
             
             <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
-              {isEditingInSidebar ? (
+              {(isEditingInSidebar || isCreating) ? (
                 <div className="max-w-xl mx-auto space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">SOP 名称</label>
-                    <input 
-                      type="text"
-                      value={form.name}
-                      onChange={(e) => setForm({...form, name: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-bold text-slate-700 mb-2">SOP 名称</label>
+                      <input 
+                        type="text"
+                        value={form.name}
+                        onChange={(e) => setForm({...form, name: e.target.value})}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                        placeholder="请输入 SOP 名称"
+                      />
+                    </div>
+                    {isCreating && (
+                      <div className="col-span-2">
+                        <label className="block text-sm font-bold text-slate-700 mb-2">所属产线</label>
+                        <select 
+                          value={form.production_line}
+                          onChange={(e) => setForm({...form, production_line: e.target.value})}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-white"
+                        >
+                          {scenarios.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">SOP 描述</label>
@@ -444,66 +681,161 @@ export default function SopManagement() {
                       value={form.description}
                       onChange={(e) => setForm({...form, description: e.target.value})}
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none h-24"
+                      placeholder="请输入 SOP 描述"
                     />
                   </div>
 
+                  {/* Script Package Upload in Sidebar */}
                   <div>
-                    <h3 className="text-sm font-bold text-slate-800 mb-3">节点编排 (Workflow)</h3>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4">
-                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={form.nodes.map(n => n.id)} strategy={verticalListSortingStrategy}>
-                          {form.nodes.map((node) => (
-                            <SortableNodeItem key={node.id} id={node.id} item={node} onRemove={removeNode} />
-                          ))}
-                        </SortableContext>
-                      </DndContext>
-                      {form.nodes.length === 0 && (
-                        <div className="py-8 text-center text-slate-400 border-2 border-dashed border-slate-100 rounded-xl">
-                          暂无节点，请从下方添加
+                    <label className="block text-sm font-bold text-slate-700 mb-2">工作流脚本包 (Workflow Script)</label>
+                    <div 
+                      onClick={() => sidebarFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-200 rounded-xl p-4 hover:border-red-300 hover:bg-red-50 transition-all cursor-pointer group"
+                    >
+                      <input 
+                        type="file" 
+                        ref={sidebarFileInputRef} 
+                        className="hidden" 
+                        onChange={(e) => handleFileUpload(e, true)}
+                        accept=".zip,.rar,.7z,.tar.gz"
+                      />
+                      {form.scriptPackage ? (
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center">
+                            <FileArchive className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-slate-800 truncate">{form.scriptPackage.name}</div>
+                            <div className="text-xs text-slate-500">{form.scriptPackage.size} • {form.scriptPackage.uploadDate}</div>
+                          </div>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, scriptPackage: null })); }}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center py-2">
+                          <UploadCloud className="w-8 h-8 text-slate-300 group-hover:text-red-400 mb-2 transition-colors" />
+                          <p className="text-xs text-slate-500">点击或拖拽上传脚本包 (.zip, .rar)</p>
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">可用节点 (关联产线及通用)</h4>
-                    <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-2">
-                      {availableNodes.map(node => {
-                        const Icon = node.icon;
-                        return (
-                          <button 
-                            key={node.id}
-                            onClick={() => addNode(node)}
-                            className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50 text-left transition-colors group"
-                          >
-                            <div className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors">
-                              {React.isValidElement(Icon) ? (
-                                React.cloneElement(Icon as React.ReactElement, { className: "w-4 h-4" })
-                              ) : (
-                                <Icon className="w-4 h-4 text-slate-600" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[10px] font-bold text-slate-800 truncate">{node.name}</div>
-                              <div className="text-[9px] text-slate-400">{node.type}</div>
-                            </div>
-                            <Plus className="w-3 h-3 text-slate-400" />
-                          </button>
-                        );
-                      })}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-slate-800">标准作业流 (Workflow)</h3>
+                      <div className="flex bg-slate-200 p-1 rounded-lg">
+                        <button 
+                          onClick={() => setWorkflowMode('visual')}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${workflowMode === 'visual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          <Layout className="w-3.5 h-3.5" /> 可视化编排
+                        </button>
+                        <button 
+                          onClick={() => setWorkflowMode('mermaid')}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${workflowMode === 'mermaid' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          <Code className="w-3.5 h-3.5" /> Mermaid 代码
+                        </button>
+                      </div>
                     </div>
+
+                    {workflowMode === 'visual' ? (
+                      <div className="space-y-4">
+                        <div ref={reactFlowWrapper} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[500px]">
+                          <div className="flex-1 relative bg-slate-50">
+                              <ReactFlow
+                                nodes={(nodes || []).filter(n => n && n.position)}
+                                edges={(edges || []).filter(e => {
+                                  const nodeIds = new Set((nodes || []).filter(n => n && n.position).map(n => n.id));
+                                  return nodeIds.has(e.source) && nodeIds.has(e.target);
+                                })}
+                                onNodesChange={onNodesChange}
+                                onEdgesChange={onEdgesChange}
+                                onConnect={onConnect}
+                                onInit={setRfInstance}
+                                onDrop={onDrop}
+                                onDragOver={onDragOver}
+                                nodeTypes={nodeTypes}
+                                fitView
+                              >
+                                <Background color="#cbd5e1" gap={20} />
+                                <Controls />
+                                <Panel position="top-right" className="bg-white/80 backdrop-blur p-2 rounded-lg border border-slate-200 shadow-sm flex gap-2">
+                                  <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                    <MousePointer2 className="w-3 h-3" /> 拖拽左侧节点到画布
+                                  </div>
+                                </Panel>
+                              </ReactFlow>
+                          </div>
+                        </div>
+
+                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">可用节点 (拖拽添加)</h4>
+                        <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2">
+                          {availableNodes.map(node => {
+                            return (
+                              <div 
+                                key={node.id}
+                                draggable
+                                onDragStart={(event) => {
+                                  event.dataTransfer.setData('application/reactflow', 'sopNode');
+                                  event.dataTransfer.setData('application/nodeData', JSON.stringify(node));
+                                  event.dataTransfer.effectAllowed = 'move';
+                                }}
+                                className="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50 text-left transition-colors group cursor-grab active:cursor-grabbing bg-white"
+                              >
+                                <div className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors">
+                                  {renderIcon(node.icon, "w-4 h-4")}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[10px] font-bold text-slate-800 truncate">{node.name}</div>
+                                  <div className="text-[9px] text-slate-400">{node.type}</div>
+                                </div>
+                                <GripVertical className="w-3 h-3 text-slate-300" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <textarea 
+                            value={mermaidCode}
+                            onChange={(e) => setMermaidCode(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 font-mono text-xs h-48 bg-slate-900 text-slate-300"
+                            placeholder="graph TD\n  A[开始] --> B[处理]"
+                          />
+                          <div className="absolute top-2 right-2 text-[10px] text-slate-500 bg-slate-800/50 px-2 py-1 rounded">
+                            Mermaid Syntax
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                          <div className="mermaid flex justify-center" ref={mermaidRef}>
+                            {mermaidCode}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="pt-6 border-t border-slate-200">
-                    <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                      <Info className="w-4 h-4 text-blue-500" />
-                      版本说明 (Version Note)
-                    </label>
-                    <textarea 
-                      value={versionNote}
-                      onChange={(e) => setVersionNote(e.target.value)}
-                      placeholder="请简要说明本次修改内容，提交后将自动生成新版本..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none h-20 text-sm"
-                    />
-                  </div>
+                  {!isCreating && (
+                    <div className="pt-6 border-t border-slate-200">
+                      <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                        <Info className="w-4 h-4 text-blue-500" />
+                        版本说明 (Version Note)
+                      </label>
+                      <textarea 
+                        value={versionNote}
+                        onChange={(e) => setVersionNote(e.target.value)}
+                        placeholder="请简要说明本次修改内容，提交后将自动生成新版本..."
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none h-20 text-sm"
+                      />
+                    </div>
+                  )}
                 </div>
               ) : activeSidebarTab === 'info' ? (
                 <div className="max-w-xl mx-auto space-y-6">
@@ -515,48 +847,77 @@ export default function SopManagement() {
                     </p>
                   </div>
 
+                  {/* Script Package Download */}
+                  {selectedSop.scriptPackage && (
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800 mb-2">工作流脚本包 (Script Package)</h3>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center">
+                            <FileArchive className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-800">{selectedSop.scriptPackage.name}</div>
+                            <div className="text-xs text-slate-500">{selectedSop.scriptPackage.size} • 上传于 {selectedSop.scriptPackage.uploadDate}</div>
+                          </div>
+                        </div>
+                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-lg text-sm font-medium transition-all">
+                          <Download className="w-4 h-4" />
+                          下载脚本包
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Workflow Nodes */}
                   <div>
-                    <h3 className="text-sm font-bold text-slate-800 mb-3">标准作业流 (Workflow Nodes)</h3>
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="space-y-4 relative">
-                        {selectedSop.nodes.map((node: any, index: number) => {
-                          const Icon = node.icon || MapPin;
-                          return (
-                            <div key={index} className="relative z-10">
-                              <div className="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-sm font-bold text-slate-600 shadow-sm shrink-0">
-                                  {node.step}
-                                </div>
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
-                                  node.type === 'Agent' ? 'bg-indigo-100 text-indigo-600' :
-                                  node.type === 'Database' ? 'bg-emerald-100 text-emerald-600' :
-                                  node.type === 'Manual' ? 'bg-amber-100 text-amber-600' :
-                                  'bg-blue-100 text-blue-600'
-                                }`}>
-                                  {React.isValidElement(Icon) ? (
-                                    React.cloneElement(Icon as React.ReactElement, { className: "w-5 h-5" })
-                                  ) : (
-                                    <Icon className="w-5 h-5" />
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="font-bold text-slate-800">{node.name}</div>
-                                  <div className="text-xs font-medium text-slate-500 mt-0.5">{node.type}</div>
-                                </div>
-                              </div>
-                              {index < selectedSop.nodes.length - 1 && (
-                                <div className="absolute left-4 top-11 w-0.5 h-6 bg-slate-200 -z-10"></div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {selectedSop.nodes.length === 0 && (
-                          <div className="text-center py-8 text-slate-400">
-                            暂无节点编排
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-slate-800">标准作业流 (Workflow)</h3>
+                      {selectedSop.mermaidCode && (
+                        <div className="flex bg-slate-200 p-1 rounded-lg">
+                          <button 
+                            onClick={() => setWorkflowMode('visual')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${workflowMode === 'visual' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                          >
+                            <Layout className="w-3.5 h-3.5" /> 流程图
+                          </button>
+                          <button 
+                            onClick={() => setWorkflowMode('mermaid')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${workflowMode === 'mermaid' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                          >
+                            <Code className="w-3.5 h-3.5" /> Mermaid
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[400px]">
+                      {workflowMode === 'mermaid' ? (
+                        <div className="p-5 overflow-x-auto flex justify-center">
+                          <div className="mermaid" ref={mermaidRef}>
+                            {selectedSop.mermaidCode}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 relative bg-slate-50">
+                          <ReactFlow
+                            nodes={(selectedSop.nodes || []).filter((n: any) => n && n.position)}
+                            edges={(selectedSop.edges || []).filter((e: any) => {
+                              const nodeIds = new Set((selectedSop.nodes || []).filter((n: any) => n && n.position).map((n: any) => n.id));
+                              return nodeIds.has(e.source) && nodeIds.has(e.target);
+                            })}
+                            nodeTypes={nodeTypes}
+                            fitView
+                            nodesDraggable={false}
+                            nodesConnectable={false}
+                            elementsSelectable={false}
+                            panOnDrag={true}
+                            zoomOnScroll={true}
+                          >
+                            <Background color="#cbd5e1" gap={20} />
+                          </ReactFlow>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -572,9 +933,15 @@ export default function SopManagement() {
                         </div>
                         <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded">{v.author}</span>
                       </div>
-                      <p className="text-sm text-slate-600 leading-relaxed">
+                      <p className="text-sm text-slate-600 leading-relaxed mb-2">
                         {v.description}
                       </p>
+                      {v.fileName && (
+                        <div className="flex items-center gap-2 text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded w-fit">
+                          <FileCode className="w-3 h-3" />
+                          关联脚本: {v.fileName}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {(!selectedSop.versionHistory || selectedSop.versionHistory.length === 0) && (
@@ -587,10 +954,10 @@ export default function SopManagement() {
               )}
             </div>
 
-            {isEditingInSidebar && (
+            {(isEditingInSidebar || isCreating) && (
               <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3 shrink-0">
                 <button 
-                  onClick={() => { setIsEditingInSidebar(false); setVersionNote(''); }}
+                  onClick={() => { setIsEditingInSidebar(false); setIsCreating(false); setVersionNote(''); }}
                   className="px-6 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-100 transition-colors"
                 >
                   取消
@@ -600,8 +967,8 @@ export default function SopManagement() {
                   disabled={!form.name}
                   className="px-6 py-2.5 rounded-xl font-medium bg-red-500 hover:bg-red-600 text-white transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  保存并发布新版本
+                  <CircleCheck className="w-4 h-4" />
+                  {isCreating ? '创建并发布' : '保存并发布新版本'}
                 </button>
               </div>
             )}
@@ -609,124 +976,8 @@ export default function SopManagement() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-indigo-500" />
-                {editingSop ? '编辑 SOP' : '新建 SOP'}
-              </h2>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-2 gap-6 mb-8">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">SOP 名称</label>
-                  <input 
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({...form, name: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                    placeholder="例如：标准POI清洗SOP"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">所属产线</label>
-                  <select 
-                    value={form.production_line}
-                    onChange={(e) => setForm({...form, production_line: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
-                  >
-                    {scenarios.map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">SOP 描述</label>
-                  <textarea 
-                    value={form.description}
-                    onChange={(e) => setForm({...form, description: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none h-24"
-                    placeholder="描述该SOP的适用场景和主要流程..."
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-medium text-slate-700">节点编排 (Workflow)</label>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => addNode('Database')} className="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg font-medium transition-colors flex items-center gap-1">
-                      <Database className="w-3.5 h-3.5" /> 数据节点
-                    </button>
-                    <button onClick={() => addNode('Agent')} className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg font-medium transition-colors flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" /> Agent节点
-                    </button>
-                    <button onClick={() => addNode('Manual')} className="text-xs px-3 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-lg font-medium transition-colors flex items-center gap-1">
-                      <Terminal className="w-3.5 h-3.5" /> 人工节点
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 min-h-[200px]">
-                  <DndContext 
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext 
-                      items={form.nodes.map(n => n.id || n.step.toString())}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {form.nodes.map((node) => (
-                        <SortableNodeItem 
-                          key={node.id || node.step.toString()} 
-                          id={node.id || node.step.toString()} 
-                          item={node} 
-                          onRemove={removeNode}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
-                  
-                  {form.nodes.length === 0 && (
-                    <div className="h-32 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-                      <Layers className="w-8 h-8 mb-2 text-slate-300" />
-                      <p className="text-sm">点击上方按钮添加节点</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-2xl flex justify-end gap-3 shrink-0">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-200 transition-colors"
-              >
-                取消
-              </button>
-              <button 
-                onClick={handleSave}
-                disabled={!form.name}
-                className="px-6 py-2.5 rounded-xl font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="w-4 h-4" />
-                保存 SOP
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Legacy Create/Edit Modal - Removed as requested */}
+      {/* isModalOpen && (...) */}
     </div>
   );
 }

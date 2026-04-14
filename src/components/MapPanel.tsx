@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Polygon, useMap } fro
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AgentResponse } from '../types';
-import { Radar, Navigation, TrendingUp, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Radar, Navigation, TrendingUp, CircleAlert, CircleCheck, Info } from 'lucide-react';
 
 // Fix Leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -115,7 +115,7 @@ export default function MapPanel({ agentResponse }: MapPanelProps) {
 
           {decision_card.highlight_result && (
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <CircleCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide mb-1">核心结论</p>
                 <p className="text-sm font-bold text-emerald-900 leading-snug">
@@ -146,7 +146,7 @@ export default function MapPanel({ agentResponse }: MapPanelProps) {
         
         <div className="p-4 bg-slate-50 border-t border-slate-100 shrink-0">
           <button className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-4 h-4" />
+            <CircleCheck className="w-4 h-4" />
             确认执行方案
           </button>
         </div>
