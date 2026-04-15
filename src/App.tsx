@@ -19,6 +19,7 @@ import Connectors from './components/Connectors';
 import TokenApiManager from './components/TokenApiManager';
 import SopManagement from './components/SopManagement';
 import WikiManagement from './components/WikiManagement';
+import PrdManagement from './components/PrdManagement';
 import MissionControl from './components/MissionControl';
 import SystemSettings from './components/SystemSettings';
 import { DictionaryProvider } from './contexts/DictionaryContext';
@@ -180,6 +181,8 @@ function AppContent() {
               <TokenApiManager />
             ) : activeView === 'system-settings' ? (
               <SystemSettings />
+            ) : activeView === 'prd-management' ? (
+              <PrdManagement />
             ) : (
               <div className="flex-1 flex items-center justify-center bg-slate-50 h-full">
                 <div className="text-center">

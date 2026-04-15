@@ -126,6 +126,12 @@ export default function Sidebar({ activeView, setActiveView, onNewChat }: Sideba
             isActive={activeView === 'system-settings'}
             onClick={() => setActiveView('system-settings')}
           />
+          <NavItem 
+            icon={<BookOpen className="w-4 h-4" />} 
+            label="PRD管理" 
+            isActive={activeView === 'prd-management'}
+            onClick={() => setActiveView('prd-management')}
+          />
         </div>
       </div>
     </div>
